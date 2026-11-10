@@ -1,0 +1,42 @@
+name: Build Marlin for BTT Octopus V1.1 (PnP)
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get my configuration files
+        uses: actions/checkout@v4
+        with:
+          path: cfg
+
+      - name: Get Marlin (bugfix-2.1.x, commit 96b2f48)
+        run: |
+          git init marlin
+          cd marlin
+          git remote add origin https://github.com/MarlinFirmware/Marlin.git
+          git fetch --depth 1 origin 96b2f48071fc67ee988928e8b560b93ac9b725b0
+          git checkout FETCH_HEAD
+
+      - name: Put configuration into Marlin
+        run: |
+          cp cfg/Configuration.h cfg/Configuration_adv.h marlin/Marlin/
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PlatformIO
+        run: pip install -U platformio
+
+      - name: Build
+        run: pio run -d marlin -e STM32F446ZE_btt
+
+      - name: Upload firmware.bin
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-octopus-pnp
+          path: marlin/.pio/build/STM32F446ZE_btt/firmware.bin
